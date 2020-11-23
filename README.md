@@ -18,3 +18,10 @@ Refer to the Wiki to see available fields of the template file
 
 Feel free to make a Pull Request to the Development Branch
 I'm really not good at the whole "Making stuff look good" thing so I'd really appreciate some PRs to fix that
+
+## Other Resources
+
+Check out these useful resources  
+[Chilli_Axe's Repositories](https://github.com/ndepaola)  
+[MPC Autofill & All the Google Drives](https://mpcautofill.com/credits)  
+[MPCProxies Discord](https://discord.gg/VRScmDMeSw)  
