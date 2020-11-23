@@ -1,0 +1,253 @@
+{
+	"name": "Basic Full Art Land",
+	"author": "Chilli_Axe & Mr Hero",
+	"width": 3288,
+	"height": 4488,
+	"dpi": 1200,
+	"customFonts": [
+		{
+			"family": "Beleren2016",
+			"weight": "bold",
+			"url": "templates/fonts/Beleren2016-Bold.ttf"
+		},
+		{
+			"family": "Beleren-Small-Caps",
+			"weight": "bold",
+			"url": "templates/fonts/Beleren-Small-Caps.ttf"
+		},
+		{
+			"family": "NDPMTG",
+			"url": "templates/fonts/NDPMTG.ttf"
+		},
+		{
+			"family": "MPlantin",
+			"url": "templates/fonts/MPlantin.ttf"
+		}
+	],
+	"inputs": [
+		{
+			"name": "cardName",
+			"type": "text",
+			"description": "Card Name",
+			"default": "Plains"
+		},
+		{
+			"name": "landType",
+			"type": "combo",
+			"description": "Land Type",
+			"default": "Plains",
+			"options": [
+				"Plains",
+				"Island",
+				"Swamp",
+				"Mountain",
+				"Forest",
+				"Wastes"
+			]
+		},
+		{
+			"name": "art",
+			"type": "text",
+			"description": "Art Image URL",
+			"default": "https://cdna.artstation.com/p/assets/images/images/010/109/908/large/sam-burley-burley-plainsbfz.jpg"
+		},
+		{
+			"name": "artist",
+			"type": "text",
+			"description": "Artist",
+			"default": "{NIB} Sam Burley",
+			"help": "Type {NIB} to insert the Artist Nib Icon"
+		},
+		{
+			"name": "legal",
+			"type": "text",
+			"description": "Legal Text",
+			"default": "Custom Proxy • (NOT FOR SALE)",
+			"help": "Text enclosed in (parentheses) will be written in Beleren2016 Font"
+		},
+		{
+			"name": "copyright",
+			"type": "text",
+			"description": "Copyright Text",
+			"default": "™ & © 2020 Wizards of the Coast"
+		}
+	],
+	"layers": [
+		{
+			"type": "text",
+			"description": "Card Name",
+			"text": "",
+			"font": "bold 150px Beleren2016",
+			"fillStyle": "white",
+			"originX": 600,
+			"originY": 215,
+			"width": 2088,
+			"height": 150,
+			"align": "center",
+			"baseline": "top",
+			"wrapText": false,
+			"scaleText": false,
+			"lineSpacing": 1.4,
+			"inputs": {
+				"text": "cardName"
+			}
+		},
+		{
+			"type": "text",
+			"description": "Legal",
+			"text": "",
+			"font": "70px Calibri",
+			"fillStyle": "white",
+			"originX": 334,
+			"originY": 4080,
+			"width": 2620,
+			"height": 70,
+			"align": "start",
+			"baseline": "top",
+			"wrapText": false,
+			"scaleText": false,
+			"lineSpacing": 1.4,
+			"inputs": {
+				"text": "legal"
+			},
+			"fontReplace": {
+				"()": "bold 70px Beleren2016"
+			}
+		},
+		{
+			"type": "text",
+			"description": "Artist",
+			"text": "",
+			"font": "bold 70px Beleren-Small-Caps",
+			"fillStyle": "white",
+			"originX": 334,
+			"originY": 4150,
+			"width": 2620,
+			"height": 70,
+			"align": "start",
+			"baseline": "top",
+			"wrapText": false,
+			"scaleText": false,
+			"lineSpacing": 1.4,
+			"inputs": {
+				"text": "artist"
+			},
+			"textReplace": {
+				"{NIB}": "{a}"
+			},
+			"fontReplace": {
+				"{}": "70px NDPMTG"
+			}
+		},
+		{
+			"type": "text",
+			"description": "Copyright",
+			"text": "",
+			"font": "70px MPlantin",
+			"fillStyle": "white",
+			"originX": 334,
+			"originY": 4080,
+			"width": 2620,
+			"height": 70,
+			"align": "right",
+			"baseline": "top",
+			"wrapText": false,
+			"scaleText": false,
+			"lineSpacing": 1.4,
+			"inputs": {
+				"text": "copyright"
+			}
+		},
+		{
+			"type": "image",
+			"description": "Frame Plains",
+			"url": "templates/basicFullArtLand/Frame_Plains.png",
+			"originX": 0,
+			"originY": 0,
+			"width": 3288,
+			"height": 4488,
+			"scale": "fill",
+			"conditions": {
+				"landType": "Plains"
+			}
+		},
+		{
+			"type": "image",
+			"description": "Frame Island",
+			"url": "templates/basicFullArtLand/Frame_Island.png",
+			"originX": 0,
+			"originY": 0,
+			"width": 3288,
+			"height": 4488,
+			"scale": "fill",
+			"conditions": {
+				"landType": "Island"
+			}
+		},
+		{
+			"type": "image",
+			"description": "Frame Swamp",
+			"url": "templates/basicFullArtLand/Frame_Swamp.png",
+			"originX": 0,
+			"originY": 0,
+			"width": 3288,
+			"height": 4488,
+			"scale": "fill",
+			"conditions": {
+				"landType": "Swamp"
+			}
+		},
+		{
+			"type": "image",
+			"description": "Frame Mountain",
+			"url": "templates/basicFullArtLand/Frame_Mountain.png",
+			"originX": 0,
+			"originY": 0,
+			"width": 3288,
+			"height": 4488,
+			"scale": "fill",
+			"conditions": {
+				"landType": "Mountain"
+			}
+		},
+		{
+			"type": "image",
+			"description": "Frame Forest",
+			"url": "templates/basicFullArtLand/Frame_Forest.png",
+			"originX": 0,
+			"originY": 0,
+			"width": 3288,
+			"height": 4488,
+			"scale": "fill",
+			"conditions": {
+				"landType": "Forest"
+			}
+		},
+		{
+			"type": "image",
+			"description": "Frame Wastes",
+			"url": "templates/basicFullArtLand/Frame_Wastes.png",
+			"originX": 0,
+			"originY": 0,
+			"width": 3288,
+			"height": 4488,
+			"scale": "fill",
+			"conditions": {
+				"landType": "Wastes"
+			}
+		},
+		{
+			"type": "image",
+			"description": "Art",
+			"url": "",
+			"originX": 0,
+			"originY": 0,
+			"width": 3288,
+			"height": 4488,
+			"scale": "fill",
+			"inputs": {
+				"url": "art"
+			}
+		}
+	]
+}
