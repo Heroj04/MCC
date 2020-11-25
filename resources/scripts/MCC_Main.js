@@ -299,10 +299,13 @@ function scaleTextLayer(layer) {
 						let secondSplit = toBeClosed.split(seperatorEnd)
 						let newStringFont = {}
 						if (secondSplit.length == 1) {
-							newStringFont = {}
-							newStringFont["text"] = secondSplit[0]
-							newStringFont["font"] = stringFont.font
-							stringWithFontsNew.push(newStringFont)
+							if (secondSplit[0] != "") {
+								// Only put the string in if it's not empty
+								newStringFont = {}
+								newStringFont["text"] = secondSplit[0]
+								newStringFont["font"] = stringFont.font
+								stringWithFontsNew.push(newStringFont)
+							}
 						} else if (secondSplit.length == 2) {
 							newStringFont = {}
 							newStringFont["text"] = secondSplit[0]
@@ -409,8 +412,12 @@ function scaleTextLayer(layer) {
 		// Regular for loop used here so we can edit the array and then process the new values
 		for (let index = 0; index < lineBreaks.length; index++) {
 			const line = lineBreaks[index];
-			let lineBaseline = 0
-			let lineHeight = 0
+			let currentLine = {
+				"height":0,
+				"baselineHeight": 0,
+				"width": 0,
+				"stringFonts": []
+			}
 			let lineWidth = 0
 			// Regular for loop used here so we can break from it to stop processing words processed in next line
 			for (let wordIndex = 0; wordIndex < line.stringFonts.length; wordIndex++) {
@@ -431,25 +438,25 @@ function scaleTextLayer(layer) {
 					}
 					nextLine.stringFonts = line.stringFonts.slice(wordIndex)
 					lineBreaks.splice(index + 1, 0, nextLine)
-					// Replace the current line with a new line with words that fit
-					let currentLine = {
-						"height": line.height,
-						"baselineHeight": line.baselineHeight,
-						"width": line.width,
-						"stringFonts": []
-					}
-					currentLine.stringFonts = line.stringFonts.slice(0, wordIndex)
+					// Replace the current line with the new current line with words that fit
 					lineBreaks.splice(index, 1, currentLine)
 					// Stop processing the current line
 					break
 				} else {
-					lineHeight = (metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent) > lineHeight ? (metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent) : lineHeight
-					lineBaseline = metrics.fontBoundingBoxAscent > lineBaseline ? metrics.fontBoundingBoxAscent : lineBaseline
-					line.width = lineWidth
-					line.height = lineHeight
-					line.baselineHeight = lineBaseline
+					// Put the word into the current Line
+					newStringFont = {}
+					newStringFont["text"] = spacedText
+					newStringFont["font"] = wordFont.font
+					currentLine.stringFonts.push(newStringFont)
+
+					// Save the current line metrics
+					currentLine.height = (metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent) > currentLine.height ? (metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent) : currentLine.height
+					currentLine.baselineHeight = metrics.fontBoundingBoxAscent > currentLine.baselineHeight ? metrics.fontBoundingBoxAscent : currentLine.baselineHeight
+					currentLine.width = lineWidth
 				}
 			}
+			// Replace the current line with the new current line with words that fit
+			lineBreaks.splice(index, 1, currentLine)
 		}
 	}
 	
@@ -509,10 +516,9 @@ function scaleTextLayer(layer) {
 
 			// Draw each word of the line
 			line.stringFonts.forEach((stringFont, index) => {
-				let spacedText = index == 0 ? stringFont.text : " " + stringFont.text
 				context.font = stringFont.font
-				context.fillText(spacedText, x, y)
-				x += context.measureText(spacedText).width
+				context.fillText(stringFont.text, x, y)
+				x += context.measureText(stringFont.text).width
 			})
 
 			// Move the cursor to the top of the next line
