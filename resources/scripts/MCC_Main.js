@@ -23,73 +23,106 @@ function createCanvas(width, height) {
 	return canvas
 }
 
-function generateInputs(inputs, parentDiv) {
+function generateInputs(inputArray, parentDiv) {
 	// Flip the input Order
-	inputs.reverse()
+	inputArray.reverse()
 	// get the current inputs
-	let currentInputValues = getInputValues(inputs)
+	let currentInputValues = getInputValues(inputArray)
 	// Clear the Parent Div
 	parentDiv.innerHTML = ""
+	// Set the previous input size
+	let previousHalfSize = false
 
-	inputs.forEach(templateInput => {
-		// Create the label for the input
-		let label = document.createElement("LABEL");
-		label.setAttribute("for", templateInput.name)
-		label.innerHTML = templateInput.description
+	inputArray.forEach(input => {
+		// Label Creation
+		let labelDOM = document.createElement("LABEL");
+		labelDOM.setAttribute("for", input.name)
+		labelDOM.innerHTML = input.description
 		let labelDiv = document.createElement("DIV")
 		labelDiv.setAttribute("class", "col-md-2 col-form-label")
-		labelDiv.appendChild(label)
+		labelDiv.appendChild(labelDOM)
 
-		// Create the input itself
-		let input
-		switch (templateInput.type) {
+		// Create the inputDOM
+		let inputDOM
+		switch (input.type) {
 			case "text":
-				input = document.createElement("INPUT")
-				input.setAttribute("type", "text")
-				input.setAttribute("id", templateInput.name)
-				input.setAttribute("class", "form-control")
+			case "checkbox":
+				// Regular input elements that match their type
+				inputDOM = document.createElement("INPUT")
+				inputDOM.setAttribute("type", input.type)
+				inputDOM.setAttribute("id", input.name)
+				inputDOM.setAttribute("class", "form-control")
 				break;
 			case "combo":
-				input = document.createElement("SELECT")
-				input.setAttribute("id", templateInput.name)
-				input.setAttribute("class", "form-control")
+				// Combo box is a little special as we need to add the options
+				inputDOM = document.createElement("SELECT")
+				inputDOM.setAttribute("id", input.name)
+				inputDOM.setAttribute("class", "form-control")
 				// Add all the options
-				templateInput.options.forEach(optionValue => {
-					let option = document.createElement("OPTION")
-					option.setAttribute("value", optionValue)
-					option.innerHTML = optionValue
-					input.appendChild(option)
+				input.options.forEach(option => {
+					let optionDOM = document.createElement("OPTION")
+					optionDOM.setAttribute("value", option)
+					optionDOM.innerHTML = option
+					inputDOM.appendChild(optionDOM)
 				});
+				break;
+			case "textarea":
+				// Textareas are their own element because of course they're different
+				inputDOM = document.createElement("TEXTAREA")
+				inputDOM.setAttribute("id", input.name)
+				inputDOM.setAttribute("class", "form-control")
+				break;
+			default:
+				throw new Error("Input type " + input.type + " not recognised")
+		}
+
+		// Set the default value or copy from last template
+		let value = currentInputValues[input.name] != undefined ? currentInputValues[input.name] : input.default
+		switch (input.type) {
+			case "text":
+			case "textarea":
+			case "combo":
+				// Set the value attribute
+				inputDOM.value = value
+				break;
+			case "checkbox":
+				// set the checked property
+				inputDOM.checked = value
 				break;
 			default:
 				break;
 		}
-		// Set the input Value
-		if (currentInputValues[templateInput.name]) {
-			input.setAttribute("value", currentInputValues[templateInput.name])
-		} else {
-			input.setAttribute("value", templateInput.default)
-		}
+		
 		// Create Help Text
-		let help = document.createElement("SMALL")
-		input.setAttribute("aria-describedby", `${templateInput.name}HelpText`)
-		help.setAttribute("id", `${templateInput.name}HelpText`)
-		help.setAttribute("class", "form-text text-muted")
-		if (templateInput.help) {
-			help.innerHTML = templateInput.help
+		let helpDOM = document.createElement("SMALL")
+		inputDOM.setAttribute("aria-describedby", `${input.name}HelpText`)
+		helpDOM.setAttribute("id", `${input.name}HelpText`)
+		helpDOM.setAttribute("class", "form-text text-muted")
+		helpDOM.innerHTML = input.help ? input.help : ""
+
+		// Create the inputDiv
+		let inputDiv = document.createElement("DIV")
+		let colSize = input.halfSize ? "col-md-4" : "col-md-10"
+		inputDiv.setAttribute("class", colSize)
+		inputDiv.appendChild(inputDOM)
+		inputDiv.appendChild(helpDOM)
+
+		// Put everything into a row
+		let rowDiv = previousHalfSize && input.halfSize ? parentDiv.childNodes[0] : document.createElement("DIV")
+		if (previousHalfSize && input.halfSize) {
+			// Put input into the current half row
+			rowDiv.insertBefore(inputDiv, rowDiv.childNodes[0])
+			rowDiv.insertBefore(labelDiv, rowDiv.childNodes[0])
+		} else {
+			// Put the input into its own row and add that row to the parent
+			parentDiv.insertBefore(rowDiv, parentDiv.childNodes[0])
+			rowDiv.setAttribute("class", "form-group row")
+			rowDiv.appendChild(labelDiv)
+			rowDiv.appendChild(inputDiv)
 		}
 		
-		let inputDiv = document.createElement("DIV")
-		inputDiv.setAttribute("class", "col-md-10")
-		inputDiv.appendChild(input)
-		inputDiv.appendChild(help)
-		
-		// Put the label and input into the Div as a row
-		let formRow = document.createElement("DIV");
-		formRow.setAttribute("class", "form-group row")
-		formRow.appendChild(labelDiv)
-		formRow.appendChild(inputDiv)
-		parentDiv.insertBefore(formRow, parentDiv.childNodes[0])
+		// Set the Current Half Size value
+		previousHalfSize = input.halfSize
 	});
 }
 
@@ -98,7 +131,21 @@ function getInputValues(inputs) {
 	inputs.forEach(input => {
 		let inputDOM = document.getElementById(input.name)
 		if (inputDOM) {
-			output[input.name] = inputDOM.value
+			switch (input.type) {
+				case "text":
+				case "combo":
+				case "textarea":
+					// Just get the value property - Nice and easy
+					output[input.name] = inputDOM.value
+					break;
+				case "checkbox":
+					// Checkboxes have just got to be different
+					output[input.name] = inputDOM.checked
+					break;
+				default:
+					break;
+			}
+			
 		}
 	});
 	return output
