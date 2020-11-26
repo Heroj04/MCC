@@ -47,7 +47,7 @@
 		},
 		{
 			"name": "art",
-			"type": "text",
+			"type": "file",
 			"description": "Art Image URL",
 			"default": "https://cdna.artstation.com/p/assets/images/images/010/109/908/large/sam-burley-burley-plainsbfz.jpg"
 		},

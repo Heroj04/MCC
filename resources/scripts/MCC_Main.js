@@ -96,6 +96,14 @@ function generateInputs(inputArray, parentDiv) {
 				inputDOM.setAttribute("id", input.name)
 				inputDOM.setAttribute("class", "form-control")
 				break;
+			case "file":
+				// File Inputs need custom classes and what files to accept
+				inputDOM = document.createElement("INPUT")
+				inputDOM.setAttribute("type", input.type)
+				inputDOM.setAttribute("id", input.name)
+				inputDOM.setAttribute("class", "form-control-file")
+				inputDOM.setAttribute("accept", "image/*")
+				break;
 			default:
 				throw new Error("Input type " + input.type + " not recognised")
 		}
@@ -114,6 +122,7 @@ function generateInputs(inputArray, parentDiv) {
 				inputDOM.checked = value
 				break;
 			default:
+				// Inputs that dont support default values
 				break;
 		}
 		
@@ -166,6 +175,9 @@ function getInputValues(inputs) {
 					// Checkboxes have just got to be different
 					output[input.name] = inputDOM.checked
 					break;
+				case "file":
+					// Take the file and make an object URL
+					output[input.name] = window.URL.createObjectURL(inputDOM.files[0])
 				default:
 					break;
 			}
