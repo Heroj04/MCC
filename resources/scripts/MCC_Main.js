@@ -162,26 +162,29 @@ function generateInputs(inputArray, parentDiv) {
 function getInputValues(inputs) {
 	let output = {}
 	inputs.forEach(input => {
-		let inputDOM = document.getElementById(input.name)
-		if (inputDOM) {
-			switch (input.type) {
-				case "text":
-				case "combo":
-				case "textarea":
-					// Just get the value property - Nice and easy
-					output[input.name] = inputDOM.value
-					break;
-				case "checkbox":
-					// Checkboxes have just got to be different
-					output[input.name] = inputDOM.checked
-					break;
-				case "file":
-					// Take the file and make an object URL
-					output[input.name] = window.URL.createObjectURL(inputDOM.files[0])
-				default:
-					break;
+		try {
+			let inputDOM = document.getElementById(input.name)
+			if (inputDOM) {
+				switch (input.type) {
+					case "text":
+					case "combo":
+					case "textarea":
+						// Just get the value property - Nice and easy
+						output[input.name] = inputDOM.value
+						break;
+					case "checkbox":
+						// Checkboxes have just got to be different
+						output[input.name] = inputDOM.checked
+						break;
+					case "file":
+						// Take the file and make an object URL
+						output[input.name] = window.URL.createObjectURL(inputDOM.files[0])
+					default:
+						break;
+				}
 			}
-			
+		} catch (error) {
+			console.log("Failed to get value of input: " + input.name)
 		}
 	});
 	return output
