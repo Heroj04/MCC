@@ -4,6 +4,30 @@ async function registerFont(path, options) {
 	document.fonts.add(loadedFont);
 }
 
+async function loadTemplate(path) {
+	return new Promise((resolve, reject) => {
+		var request = new XMLHttpRequest();
+
+		// Resolve the request on load
+		request.onload = () => {
+			if (request.status == 200) {
+				resolve(JSON.parse(request.responseText));
+			} else {
+				reject(new Error("Failed to load resource Error: " + request.status))
+			}
+		}
+
+		// Handle a complete failure also
+		request.onerror = () => {
+			reject(new Error("Network Error"))
+		}
+		
+		// Start the request
+		request.open("GET", path, true);
+		request.send();
+	})
+}
+
 function loadImage(path) {
 	return new Promise((resolve, reject) => {
 		let img = new Image();
