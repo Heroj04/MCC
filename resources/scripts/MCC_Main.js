@@ -348,6 +348,11 @@ function scaleTextLayer(layer) {
 	let canvas = createCanvas(layer.width, layer.height)
 	let context = canvas.getContext("2d")
 
+	// Set up the context
+	context.textAlign = "start"
+	context.textBaseline = "alphabetic"
+	context.fillStyle = layer.fillStyle
+
 	// Do any text replacements we need
 	let text = layer.text
 	for (const sourceString in layer.textReplace) {
@@ -380,10 +385,13 @@ function scaleTextLayer(layer) {
 						let secondSplit = toBeClosed.split(seperatorEnd)
 						let newStringFont = {}
 						if (secondSplit.length == 1) {
-							newStringFont = {}
-							newStringFont["text"] = secondSplit[0]
-							newStringFont["font"] = stringFont.font
-							stringWithFontsNew.push(newStringFont)
+							if (secondSplit[0] != "") {
+								// Only put the string in if it's not empty
+								newStringFont = {}
+								newStringFont["text"] = secondSplit[0]
+								newStringFont["font"] = stringFont.font
+								stringWithFontsNew.push(newStringFont)
+							}
 						} else if (secondSplit.length == 2) {
 							newStringFont = {}
 							newStringFont["text"] = secondSplit[0]
@@ -420,59 +428,187 @@ function scaleTextLayer(layer) {
 		}
 	}
 
-	// Set the fill style
-	context.fillStyle = layer.fillStyle
+	let lineBreaks = [{
+		"height": 0,
+		"baselineHeight": 0,
+		"width": 0,
+		"stringFonts": []
+	}]
 
-	// Set variables
-	let x = 0
-	let y = 0
-	
-	if (layer.wrapText || layer.scaleText) {
-		throw new Error("Text wrapping and Autoscaling not yet supported")
-	} else {
-		let totalWidth = 0
-		stringsWithFonts.forEach(stringFont => {
-			context.font = stringFont.font
-			totalWidth += context.measureText(stringFont.text).width
+	stringsWithFonts.forEach(stringFont => {
+		// Split at line breaks
+		let lines = stringFont.text.split("\n")
+		// Put the split stringFonts into the lineBreaks array
+		// The first one should always be on the current line
+		newStringFont = {}
+		newStringFont["text"] = lines[0]
+		newStringFont["font"] = stringFont.font
+		lineBreaks[lineBreaks.length - 1].stringFonts.push(newStringFont)
+		// Calculate line metrics
+		context.font = newStringFont.font
+		let metrics = context.measureText(newStringFont.text)
+		let height = metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent
+		lineBreaks[lineBreaks.length - 1].height = height > lineBreaks[lineBreaks.length - 1].height ? height : lineBreaks[lineBreaks.length - 1].height
+		lineBreaks[lineBreaks.length - 1].baselineHeight = metrics.fontBoundingBoxAscent > lineBreaks[lineBreaks.length - 1].baselineHeight ? metrics.fontBoundingBoxAscent : lineBreaks[lineBreaks.length - 1].baselineHeight
+		lineBreaks[lineBreaks.length - 1].width += metrics.width
+		// everything else goes onto a new line
+		if (lines.length > 1) {
+			lineBreaks.push({
+				"height": 0,
+				"baselineHeight": 0,
+				"width": 0,
+				"stringFonts": []
+			})
+			// Regular for loop so we can start at 1
+			for (let index = 1; index < lines.length; index++) {
+				const line = lines[index];
+				newStringFont = {}
+				newStringFont["text"] = line
+				newStringFont["font"] = stringFont.font
+				lineBreaks[lineBreaks.length - 1].stringFonts.push(newStringFont)
+				// Calculate line metrics
+				context.font = newStringFont.font
+				let metrics = context.measureText(newStringFont.text)
+				let height = metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent
+				lineBreaks[lineBreaks.length - 1].height = height > lineBreaks[lineBreaks.length - 1].height ? height : lineBreaks[lineBreaks.length - 1].height
+				lineBreaks[lineBreaks.length - 1].baselineHeight = metrics.fontBoundingBoxAscent > lineBreaks[lineBreaks.length - 1].baselineHeight ? metrics.fontBoundingBoxAscent : lineBreaks[lineBreaks.length - 1].baselineHeight
+				lineBreaks[lineBreaks.length - 1].width += metrics.width
+			}
+		}
+	})
+
+	// Word Wrapping
+	if (layer.wrapText) {
+		// Split each lines stringFonts into words as stringFonts
+		lineBreaks.forEach((line, index) => {
+			let splitLine = []
+			line.stringFonts.forEach(stringFont => {
+				let words = stringFont.text.split(" ")
+				words.forEach(wordString => {
+					newStringFont = {}
+					newStringFont["text"] = wordString
+					newStringFont["font"] = stringFont.font
+					splitLine.push(newStringFont)
+				});
+			})
+			lineBreaks[index].stringFonts = splitLine
 		});
 
-		// Align Horizontally if needed
-		context.textAlign = "start"
-		switch (layer.align) {
-			case "start":
-				x = 0
+		// Check each line and where longer than a line, wrap to a new line
+		// Regular for loop used here so we can edit the array and then process the new values
+		for (let index = 0; index < lineBreaks.length; index++) {
+			const line = lineBreaks[index];
+			let currentLine = {
+				"height":0,
+				"baselineHeight": 0,
+				"width": 0,
+				"stringFonts": []
+			}
+			let lineWidth = 0
+			// Regular for loop used here so we can break from it to stop processing words processed in next line
+			for (let wordIndex = 0; wordIndex < line.stringFonts.length; wordIndex++) {
+				const wordFont = line.stringFonts[wordIndex];
+				// Make sure we measure with the space added back
+				let spacedText = wordIndex == 0 ? wordFont.text : " " + wordFont.text
+				// Measure the line with the word added
+				context.font = wordFont.font
+				let metrics = context.measureText(spacedText)
+				lineWidth += metrics.width
+				if (lineWidth > layer.width) {
+					// We need to wrap current word and onwards to a new line
+					let nextLine = {
+						"height": 0,
+						"baselineHeight": 0,
+						"width": 0,
+						"stringFonts": []
+					}
+					nextLine.stringFonts = line.stringFonts.slice(wordIndex)
+					lineBreaks.splice(index + 1, 0, nextLine)
+					// Replace the current line with the new current line with words that fit
+					lineBreaks.splice(index, 1, currentLine)
+					// Stop processing the current line
+					break
+				} else {
+					// Put the word into the current Line
+					newStringFont = {}
+					newStringFont["text"] = spacedText
+					newStringFont["font"] = wordFont.font
+					currentLine.stringFonts.push(newStringFont)
+
+					// Save the current line metrics
+					currentLine.height = (metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent) > currentLine.height ? (metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent) : currentLine.height
+					currentLine.baselineHeight = metrics.fontBoundingBoxAscent > currentLine.baselineHeight ? metrics.fontBoundingBoxAscent : currentLine.baselineHeight
+					currentLine.width = lineWidth
+				}
+			}
+			// Replace the current line with the new current line with words that fit
+			lineBreaks.splice(index, 1, currentLine)
+		}
+	}
+	
+	if (layer.scaleText) {
+		throw new Error("Autoscaling not yet supported")
+	} else {
+		// Get the total height so we know where to start our cursor
+		let totalHeight = 0
+		if (lineBreaks.length <= 1) {
+			totalHeight = lineBreaks[0].height
+		} else {
+			lineBreaks.forEach(line => {
+				totalHeight += line.height * layer.lineSpacing
+			});
+		}
+
+		// Set Cursor to origin
+		let x = 0
+		let y = 0
+
+		// Align Vertically / Set Baseline
+		switch (layer.baseline) {
+			case "top":
+				// Do nothing, we're already at x = 0
 				break;
-			case "center":
-				x = (layer.width / 2) - (totalWidth / 2)
+			case "middle":
+				// move to the middle of the layer then up to the start of the text
+				y = (layer.height / 2) - (totalHeight / 2)
 				break;
-			case "right":
-				x = layer.width - totalWidth
+			case "bottom":
+				// move to the bottom of the layer then up to the start of the text
+				y = layer.height - totalHeight
 				break;
 			default:
 				break;
 		}
 
-		// Align Vertically if needed
-		context.textBaseline = layer.baseline
-		switch (layer.baseline) {
-			case "top":
-				// do nothing start typing
-				break;
-			case "middle":
-				y = (layer.height / 2)
-				break;
-			case "bottom":
-				y = layer.height
-				break;
-			default:
-				break;
-		}
-		
-		// Draw the Text
-		stringsWithFonts.forEach(stringFont => {
-			context.font = stringFont.font
-			context.fillText(stringFont.text, x, y)
-			x += context.measureText(stringFont.text).width
+		// Draw each line
+		lineBreaks.forEach(line => {
+			// Align Horizontally if needed
+			switch (layer.align) {
+				case "start":
+					x = 0
+					break;
+				case "center":
+					x = (layer.width / 2) - (line.width / 2)
+					break;
+				case "right":
+					x = layer.width - line.width
+					break;
+				default:
+					break;
+			}
+
+			// Move the cursor to the baseline of the current line
+			y += line.baselineHeight
+
+			// Draw each word of the line
+			line.stringFonts.forEach((stringFont, index) => {
+				context.font = stringFont.font
+				context.fillText(stringFont.text, x, y)
+				x += context.measureText(stringFont.text).width
+			})
+
+			// Move the cursor to the top of the next line
+			y = y - line.baselineHeight + (line.height * layer.lineSpacing)
 		});
 	}
 
