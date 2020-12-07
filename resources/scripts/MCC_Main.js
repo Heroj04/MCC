@@ -465,7 +465,7 @@ function scaleTextLayer(layer) {
 	} else {
 		// Get the total height so we know where to start our cursor
 		let totalHeight = 0
-		if (lineBreaks.length > 1) {
+		if (lineBreaks.length <= 1) {
 			totalHeight = lineBreaks[0].height
 		} else {
 			lineBreaks.forEach(line => {
