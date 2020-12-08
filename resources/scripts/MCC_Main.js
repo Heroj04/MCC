@@ -658,19 +658,23 @@ function processConditions(conditions, inputs) {
 		if (conditions.hasOwnProperty(key)) {
 			const element = conditions[key];
 			
-			if (key == "or") {
-				// Process Or statement
-				let anyTrue = false
-				element.forEach(subConditions => {
-					let output = processConditions(subConditions, inputs)
-					if (output) {
-						anyTrue = true
-					}
-				});
-				results.push(anyTrue)
-			} else {
-				// Check if input equals check condition
-				results.push(element == inputs[key])
+			switch (key) {
+				case "$or":
+					// Process Or statement
+					let anyTrue = false
+					element.forEach(subConditions => {
+						let output = processConditions(subConditions, inputs)
+						if (output) {
+							anyTrue = true
+						}
+					});
+					results.push(anyTrue)
+					break;
+				
+				default:
+					// Check if input equals check condition
+					results.push(element == inputs[key])
+					break;
 			}
 		}
 	}
