@@ -477,140 +477,169 @@ function scaleTextLayer(layer) {
 		}
 	})
 
-	// Word Wrapping
-	if (layer.wrapText) {
-		// Split each lines stringFonts into words as stringFonts
-		lineBreaks.forEach((line, index) => {
-			let splitLine = []
-			line.stringFonts.forEach(stringFont => {
-				let words = stringFont.text.split(" ")
-				words.forEach(wordString => {
-					newStringFont = {}
-					newStringFont["text"] = wordString
-					newStringFont["font"] = stringFont.font
-					splitLine.push(newStringFont)
-				});
-			})
-			lineBreaks[index].stringFonts = splitLine
-		});
+	let totalHeight = 0
+	let totalWidth = 0
+	let scale = 1
+	let finalLines
 
-		// Check each line and where longer than a line, wrap to a new line
-		// Regular for loop used here so we can edit the array and then process the new values
-		for (let index = 0; index < lineBreaks.length; index++) {
-			const line = lineBreaks[index];
-			let currentLine = {
-				"height":0,
-				"baselineHeight": 0,
-				"width": 0,
-				"stringFonts": []
-			}
-			let lineWidth = 0
-			// Regular for loop used here so we can break from it to stop processing words processed in next line
-			for (let wordIndex = 0; wordIndex < line.stringFonts.length; wordIndex++) {
-				const wordFont = line.stringFonts[wordIndex];
-				// Make sure we measure with the space added back
-				let spacedText = wordIndex == 0 ? wordFont.text : " " + wordFont.text
-				// Measure the line with the word added
-				context.font = wordFont.font
-				let metrics = context.measureText(spacedText)
-				lineWidth += metrics.width
-				if (lineWidth > layer.width) {
-					// We need to wrap current word and onwards to a new line
-					let nextLine = {
-						"height": 0,
-						"baselineHeight": 0,
-						"width": 0,
-						"stringFonts": []
-					}
-					nextLine.stringFonts = line.stringFonts.slice(wordIndex)
-					lineBreaks.splice(index + 1, 0, nextLine)
-					// Replace the current line with the new current line with words that fit
-					lineBreaks.splice(index, 1, currentLine)
-					// Stop processing the current line
-					break
-				} else {
-					// Put the word into the current Line
-					newStringFont = {}
-					newStringFont["text"] = spacedText
-					newStringFont["font"] = wordFont.font
-					currentLine.stringFonts.push(newStringFont)
+	// Always run at least once
+	do {
+		// Clone the linebreaks array so we have a fresh array each loop
+		// I know this is a really dumb way of doing it but I really want an entirely new object with no references
+		finalLines = JSON.parse(JSON.stringify(lineBreaks))
 
-					// Save the current line metrics
-					currentLine.height = (metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent) > currentLine.height ? (metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent) : currentLine.height
-					currentLine.baselineHeight = metrics.fontBoundingBoxAscent > currentLine.baselineHeight ? metrics.fontBoundingBoxAscent : currentLine.baselineHeight
-					currentLine.width = lineWidth
+		// Word Wrapping
+		if (layer.wrapText) {
+			// Split each lines stringFonts into words as stringFonts
+			finalLines.forEach((line, index) => {
+				let splitLine = []
+				line.stringFonts.forEach(stringFont => {
+					let words = stringFont.text.split(" ")
+					words.forEach(wordString => {
+						newStringFont = {}
+						newStringFont["text"] = wordString
+						newStringFont["font"] = stringFont.font
+						splitLine.push(newStringFont)
+					});
+				})
+				finalLines[index].stringFonts = splitLine
+			});
+
+			// Check each line and where longer than a line, wrap to a new line
+			// Regular for loop used here so we can edit the array and then process the new values
+			for (let index = 0; index < finalLines.length; index++) {
+				const line = finalLines[index];
+				let currentLine = {
+					"height":0,
+					"baselineHeight": 0,
+					"width": 0,
+					"stringFonts": []
 				}
+				let lineWidth = 0
+				// Regular for loop used here so we can break from it to stop processing words processed in next line
+				for (let wordIndex = 0; wordIndex < line.stringFonts.length; wordIndex++) {
+					const wordFont = line.stringFonts[wordIndex];
+					// Make sure we measure with the space added back
+					let spacedText = wordIndex == 0 ? wordFont.text : " " + wordFont.text
+					// Measure the line with the word added in real units
+					context.font = wordFont.font
+					let metrics = context.measureText(spacedText)
+					lineWidth += metrics.width * scale
+					if (lineWidth > layer.width) {
+						// We need to wrap current word and onwards to a new line
+						let nextLine = {
+							"height": 0,
+							"baselineHeight": 0,
+							"width": 0,
+							"stringFonts": []
+						}
+						nextLine.stringFonts = line.stringFonts.slice(wordIndex)
+						finalLines.splice(index + 1, 0, nextLine)
+						// Replace the current line with the new current line with words that fit
+						finalLines.splice(index, 1, currentLine)
+						// Stop processing the current line
+						break
+					} else {
+						// Put the word into the current Line
+						newStringFont = {}
+						newStringFont["text"] = spacedText
+						newStringFont["font"] = wordFont.font
+						currentLine.stringFonts.push(newStringFont)
+
+						// Get the current Line metrics in real units
+						let newHeight = (metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent) * scale
+						let newBaselineHeight = metrics.fontBoundingBoxAscent * scale
+						// Save the current line metrics
+						currentLine.height = newHeight > currentLine.height ? newHeight : currentLine.height
+						currentLine.baselineHeight = newBaselineHeight > currentLine.baselineHeight ? newBaselineHeight : currentLine.baselineHeight
+						currentLine.width = lineWidth
+					}
+				}
+				// Replace the current line with the new current line with words that fit
+				finalLines.splice(index, 1, currentLine)
 			}
-			// Replace the current line with the new current line with words that fit
-			lineBreaks.splice(index, 1, currentLine)
 		}
-	}
-	
-	if (layer.scaleText) {
-		throw new Error("Autoscaling not yet supported")
-	} else {
+
 		// Get the total height so we know where to start our cursor
-		let totalHeight = 0
-		if (lineBreaks.length <= 1) {
-			totalHeight = lineBreaks[0].height
+		totalHeight = 0
+		if (finalLines.length <= 1) {
+			finalLines[0].height = layer.wrapText ? finalLines[0].height : finalLines[0].height * scale //Make sure we're using the right units (if text was wrapped it's already in real units)
+			finalLines[0].baselineHeight = layer.wrapText ? finalLines[0].baselineHeight : finalLines[0].baselineHeight * scale //Make sure we're using the right units (if text was wrapped it's already in real units)
+			totalHeight = finalLines[0].height
 		} else {
-			lineBreaks.forEach(line => {
+			finalLines.forEach(line => {
+				line.height = layer.wrapText ? line.height : line.height * scale //Make sure we're using the right units (if text was wrapped it's already in real units)
+				line.baselineHeight = layer.wrapText ? line.baselineHeight : line.baselineHeight * scale //Make sure we're using the right units (if text was wrapped it's already in real units)
 				totalHeight += line.height * layer.lineSpacing
 			});
 		}
 
-		// Set Cursor to origin
-		let x = 0
-		let y = 0
+		// Get the total Width so we can scale horizontal text
+		totalWidth = 0
+		finalLines.forEach(line => {
+			line.width = layer.wrapText ? line.width : line.width * scale //Make sure we're using the right units (if text was wrapped it's already in real units)
+			totalWidth = line.width > totalWidth ? line.width : totalWidth
+		});
 
-		// Align Vertically / Set Baseline
-		switch (layer.baseline) {
-			case "top":
-				// Do nothing, we're already at x = 0
+		if (layer.scaleText && (totalHeight > layer.height || totalWidth > layer.width)) {
+			// If we're going to loop, scale the context
+			context.scale(0.95, 0.95)
+			scale = scale * 0.95
+		}
+	} while (layer.scaleText && (totalHeight > layer.height || totalWidth > layer.width));
+
+	// Set Cursor to origin
+	let x = 0
+	let y = 0
+
+	// Align Vertically / Set Baseline
+	switch (layer.baseline) {
+		case "top":
+			// Do nothing, we're already at x = 0
+			break;
+		case "middle":
+			// move to the middle of the layer then up to the start of the text
+			y = (layer.height / 2) - (totalHeight / 2)
+			break;
+		case "bottom":
+			// move to the bottom of the layer then up to the start of the text
+			y = layer.height - totalHeight
+			break;
+		default:
+			break;
+	}
+
+	// Draw each line
+	finalLines.forEach(line => {
+		// Align Horizontally if needed
+		switch (layer.align) {
+			case "start":
+				x = 0
 				break;
-			case "middle":
-				// move to the middle of the layer then up to the start of the text
-				y = (layer.height / 2) - (totalHeight / 2)
+			case "center":
+				x = (layer.width / 2) - (line.width / 2)
 				break;
-			case "bottom":
-				// move to the bottom of the layer then up to the start of the text
-				y = layer.height - totalHeight
+			case "right":
+				x = layer.width - line.width
 				break;
 			default:
 				break;
 		}
 
-		// Draw each line
-		lineBreaks.forEach(line => {
-			// Align Horizontally if needed
-			switch (layer.align) {
-				case "start":
-					x = 0
-					break;
-				case "center":
-					x = (layer.width / 2) - (line.width / 2)
-					break;
-				case "right":
-					x = layer.width - line.width
-					break;
-				default:
-					break;
-			}
+		// Move the cursor to the baseline of the current line
+		y += line.baselineHeight
 
-			// Move the cursor to the baseline of the current line
-			y += line.baselineHeight
+		// Draw each word of the line
+		line.stringFonts.forEach((stringFont, index) => {
+			context.font = stringFont.font
+			// Divide by scale here so our real units turn into CSS units
+			context.fillText(stringFont.text, x / scale, y / scale)
+			x += context.measureText(stringFont.text).width * scale
+		})
 
-			// Draw each word of the line
-			line.stringFonts.forEach((stringFont, index) => {
-				context.font = stringFont.font
-				context.fillText(stringFont.text, x, y)
-				x += context.measureText(stringFont.text).width
-			})
-
-			// Move the cursor to the top of the next line
-			y = y - line.baselineHeight + (line.height * layer.lineSpacing)
-		});
-	}
+		// Move the cursor to the top of the next line
+		y = y - line.baselineHeight + (line.height * layer.lineSpacing)
+	});
 
 	// Return the completed Canvas
 	return canvas
