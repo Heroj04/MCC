@@ -478,6 +478,7 @@ function scaleTextLayer(layer) {
 	})
 
 	let totalHeight = 0
+	let totalWidth = 0
 	let scale = 1
 	let finalLines
 
@@ -569,12 +570,19 @@ function scaleTextLayer(layer) {
 			});
 		}
 
-		if (layer.scaleText && totalHeight > layer.height) {
+		// Get the total Width so we can scale horizontal text
+		totalWidth = 0
+		finalLines.forEach(line => {
+			line.width = layer.wrapText ? line.width : line.width * scale //Make sure we're using the right units (if text was wrapped it's already in real units)
+			totalWidth = line.width > totalWidth ? line.width : totalWidth
+		});
+
+		if (layer.scaleText && (totalHeight > layer.height || totalWidth > layer.width)) {
 			// If we're going to loop, scale the context
 			context.scale(0.95, 0.95)
 			scale = scale * 0.95
 		}
-	} while (layer.scaleText && totalHeight > layer.height);
+	} while (layer.scaleText && (totalHeight > layer.height || totalWidth > layer.width));
 
 	// Set Cursor to origin
 	let x = 0
