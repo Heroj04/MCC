@@ -563,9 +563,13 @@ function scaleTextLayer(layer) {
 		// Get the total height so we know where to start our cursor
 		totalHeight = 0
 		if (finalLines.length <= 1) {
+			finalLines[0].height = layer.wrapText ? finalLines[0].height : finalLines[0].height * scale //Make sure we're using the right units (if text was wrapped it's already in real units)
+			finalLines[0].baselineHeight = layer.wrapText ? finalLines[0].baselineHeight : finalLines[0].baselineHeight * scale //Make sure we're using the right units (if text was wrapped it's already in real units)
 			totalHeight = finalLines[0].height
 		} else {
 			finalLines.forEach(line => {
+				finalLines[0].height = layer.wrapText ? finalLines[0].height : finalLines[0].height * scale //Make sure we're using the right units (if text was wrapped it's already in real units)
+				finalLines[0].baselineHeight = layer.wrapText ? finalLines[0].baselineHeight : finalLines[0].baselineHeight * scale //Make sure we're using the right units (if text was wrapped it's already in real units)
 				totalHeight += line.height * layer.lineSpacing
 			});
 		}
