@@ -705,19 +705,75 @@ function processConditions(conditions, inputs) {
 		if (conditions.hasOwnProperty(key)) {
 			const element = conditions[key];
 			
-			if (key == "or") {
-				// Process Or statement
-				let anyTrue = false
-				element.forEach(subConditions => {
-					let output = processConditions(subConditions, inputs)
-					if (output) {
-						anyTrue = true
+			switch (key) {
+				case "$or":
+					// Process Or statement
+					let anyTrue = false
+					element.forEach(subConditions => {
+						let output = processConditions(subConditions, inputs)
+						if (output) {
+							anyTrue = true
+						}
+					});
+					results.push(anyTrue)
+					break;
+
+				case "$not":
+					// Process Or statement
+					let inner = processConditions(element, inputs)
+					results.push(!inner)
+					break;
+
+				default:
+					// If element is an object (has subconditions like < > !)
+					if (typeof element == "object") {
+						// For each property in the object
+						for (const subCondition in element) {
+							if (element.hasOwnProperty(subCondition)) {
+								const subConditionData = element[subCondition];
+
+								// Switch on operators
+								switch (subCondition) {
+									case "$match":
+										// Regex match
+										results.push(inputs[key].match(subConditionData))
+										break;
+									
+									case "$lt":
+										// Less than
+										results.push(inputs[key] < subConditionData)
+										break;
+									
+									case "$lte":
+										// Less than or equal to
+										results.push(inputs[key] <= subConditionData)
+										break;
+
+									case "$gt":
+										//Greater than
+										results.push(inputs[key] > subConditionData)
+										break;
+
+									case "$gte":
+										// Greater than or equal to
+										results.push(inputs[key] >= subConditionData)
+										break;
+
+									case "$in":
+										// In array
+										results.push(subConditionData.includes(inputs[key]))
+										break;
+
+									default:
+										break;
+								}
+							}
+						}
+					} else {
+						// Check if input equals check condition
+						results.push(element == inputs[key])
 					}
-				});
-				results.push(anyTrue)
-			} else {
-				// Check if input equals check condition
-				results.push(element == inputs[key])
+					break;
 			}
 		}
 	}
