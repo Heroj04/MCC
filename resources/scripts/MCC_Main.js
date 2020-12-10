@@ -190,24 +190,84 @@ function getInputValues(inputs) {
 	return output
 }
 
-async function drawLayer(layer, context) {
+async function drawLayer(layer, context, inputs) {
+	// Check the Layer Conditions
+	if (!(processConditions(layer.conditions, inputs))) {
+		console.debug("Conditions for layer " + layer.description + " not met")
+		// If the layer conditions are not met just return doing nothing
+		return
+	}
+
+	// Substitute layer properties from inputs
+	for (const layerProperty in layer.inputs) {
+		if (layer.inputs.hasOwnProperty(layerProperty)) {
+			const inputName = layer.inputs[layerProperty];
+			if (inputs[inputName]) {
+				layer[layerProperty] = inputs[inputName]
+			}
+		}
+	}
+
+	// Draw the layers
 	switch (layer.type) {
+		case "group":
+			// Create a new Canvas for the group
+			let subCanvas = createCanvas(layer.width, layer.height)
+			let subContext = subCanvas.getContext("2d")
+			// Draw the sublayers to the new canvas
+			for (let index = 0; index < layer.layers.length; index++) {
+				const subLayer = layer.layers[index];
+				try {
+					await drawLayer(subLayer, subContext, inputs)
+				} catch (error) {
+					console.error(`Failed to draw layer ${subLayer.description} - ${error.message}`)
+				}
+			}
+			// Draw the new canvas to the original canvas
+			context.drawImage(subCanvas, layer.originX, layer.originY, layer.width, layer.height)
+			break;
+
 		case "text":
 			// Scale Text to size
 			let scaledText = await scaleTextLayer(layer)
 			// Draw the text to the canvas
 			context.drawImage(scaledText, layer.originX, layer.originY, layer.width, layer.height)
 			break;
+	
 		case "image":
 			// Scale Image to size
 			let scaledImage = await scaleImageLayer(layer)
 			// Draw the scaled image to the canvas
 			context.drawImage(scaledImage, layer.originX, layer.originY, layer.width, layer.height)
 			break;
+
+		case "fill":
+			// Draw a filled rectangle
+			context.save()
+			context.fillStyle = layer.fillStyle
+			context.fillRect(layer.originX, layer.originY, layer.width, layer.height)
+			context.restore()
+			break;
+		
+		case "mask":
+			// Scale Image to size
+			let maskImage = await scaleImageLayer(layer)
+			// Draw the scaled image to the canvas for each operation
+			layer.operations.forEach(operation => {
+				context.save()
+				context.globalCompositeOperation = operation
+				context.drawImage(maskImage, layer.originX, layer.originY, layer.width, layer.height)
+				context.restore()
+			});
+			break;
+
 		default:
+			console.error("Unknown Layer type")
 			break;
 	}
 }
+
+
 
 async function generateCard(template, inputs) {
 	// 69.6mm x 95.0mm (63mm x 88mm with bleed)
@@ -235,26 +295,13 @@ async function generateCard(template, inputs) {
 	template.layers.reverse()
 
 	// Draw the layers
+	// Use a normal for loop here to get around async anonymous functions
 	for (let index = 0; index < template.layers.length; index++) {
-		let layer = template.layers[index];
-		if (processConditions(layer.conditions, inputs)) {
-			// Update layer properties from inputs
-			for (const layerProperty in layer.inputs) {
-				if (layer.inputs.hasOwnProperty(layerProperty)) {
-					const inputName = layer.inputs[layerProperty];
-					if (inputs[inputName]) {
-						layer[layerProperty] = inputs[inputName]
-					}
-				}
-			}
-			// Draw the layer
-			try {
-				await drawLayer(layer, context)
-			} catch (error) {
-				console.log("Failed to draw layer " + layer.description + ": " + error.message)
-			}
-		} else {
-			console.log("Conditions for layer " + layer.description + " not met");
+		const layer = template.layers[index];
+		try {
+			await drawLayer(layer, context, inputs)
+		} catch (error) {
+			console.error(`Failed to draw layer ${layer.description} - ${error.message}`)
 		}
 	}
 
@@ -264,7 +311,7 @@ async function generateCard(template, inputs) {
 
 // Function that takes an image layer and returns a the image cropped and scaled as a canvas
 async function scaleImageLayer(layer) {
-	if (layer.type != "image") {
+	if (layer.type != "image" && layer.type != "mask") {
 		throw new Error("Tried to scale a non image layer")
 	} else if (layer.url == "") {
 		throw new Error("Layer has no URL")
