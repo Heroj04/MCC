@@ -111,7 +111,10 @@
 				"text": "legal"
 			},
 			"fontReplace": {
-				"()": "bold 70px Beleren2016"
+				"()": {
+					"font": "bold 70px Beleren2016",
+					"fillStyle": "white"
+				}
 			}
 		},
 		{
@@ -136,7 +139,10 @@
 				"{NIB}": "{a}"
 			},
 			"fontReplace": {
-				"{}": "70px NDPMTG"
+				"{}": {
+					"font": "70px NDPMTG",
+					"fillStyle": "white"
+				}
 			}
 		},
 		{
