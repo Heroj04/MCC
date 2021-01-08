@@ -418,10 +418,12 @@ function scaleTextLayer(layer) {
 	let temp = {}
 	temp["text"] = text
 	temp["font"] = layer.font
+	temp["fillStyle"] = layer.fillStyle
 	stringsWithFonts.push(temp)
 	for (const seperatorString in layer.fontReplace) {
 		if (Object.prototype.hasOwnProperty.call(layer.fontReplace, seperatorString)) {
-			const font = layer.fontReplace[seperatorString];
+			const font = layer.fontReplace[seperatorString].font;
+			const fillStyle = layer.fontReplace[seperatorString].fillStyle;
 			// Seperator Boundaries
 			let stringWithFontsNew = []
 			let seperatorStart = seperatorString.substring(0, seperatorString.length / 2) //First half of string
@@ -440,17 +442,20 @@ function scaleTextLayer(layer) {
 								newStringFont = {}
 								newStringFont["text"] = secondSplit[0]
 								newStringFont["font"] = stringFont.font
+								newStringFont["fillStyle"] = stringFont.fillStyle
 								stringWithFontsNew.push(newStringFont)
 							}
 						} else if (secondSplit.length == 2) {
 							newStringFont = {}
 							newStringFont["text"] = secondSplit[0]
 							newStringFont["font"] = font
+							newStringFont["fillStyle"] = fillStyle
 							stringWithFontsNew.push(newStringFont)
 							if (secondSplit[1] != "") {
 								newStringFont = {}
 								newStringFont["text"] = secondSplit[1]
 								newStringFont["font"] = stringFont.font
+								newStringFont["fillStyle"] = stringFont.fillStyle
 								stringWithFontsNew.push(newStringFont)
 							}
 						} else {
@@ -460,11 +465,13 @@ function scaleTextLayer(layer) {
 							newStringFont = {}
 							newStringFont["text"] = firstString
 							newStringFont["font"] = stringFont.font
+							newStringFont["fillStyle"] = stringFont.fillStyle
 							stringWithFontsNew.push(newStringFont)
 							if (finalString != "") {
 								newStringFont = {}
 								newStringFont["text"] = finalString
 								newStringFont["font"] = font
+								newStringFont["fillStyle"] = fillStyle
 								stringWithFontsNew.push(newStringFont)
 							}
 						}
@@ -493,9 +500,11 @@ function scaleTextLayer(layer) {
 		let newStringFont = {}
 		newStringFont["text"] = lines[0]
 		newStringFont["font"] = stringFont.font
+		newStringFont["fillStyle"] = stringFont.fillStyle
 		lineBreaks[lineBreaks.length - 1].stringFonts.push(newStringFont)
 		// Calculate line metrics
 		context.font = newStringFont.font
+		context.fillStyle = newStringFont.fillStyle
 		let metrics = context.measureText(newStringFont.text)
 		let height = metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent
 		lineBreaks[lineBreaks.length - 1].height = height > lineBreaks[lineBreaks.length - 1].height ? height : lineBreaks[lineBreaks.length - 1].height
@@ -515,9 +524,11 @@ function scaleTextLayer(layer) {
 				newStringFont = {}
 				newStringFont["text"] = line
 				newStringFont["font"] = stringFont.font
+				newStringFont["fillStyle"] = stringFont.fillStyle
 				lineBreaks[lineBreaks.length - 1].stringFonts.push(newStringFont)
 				// Calculate line metrics
 				context.font = newStringFont.font
+				context.fillStyle = newStringFont.fillStyle
 				let metrics = context.measureText(newStringFont.text)
 				let height = metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent
 				lineBreaks[lineBreaks.length - 1].height = height > lineBreaks[lineBreaks.length - 1].height ? height : lineBreaks[lineBreaks.length - 1].height
@@ -549,6 +560,7 @@ function scaleTextLayer(layer) {
 						let newStringFont = {}
 						newStringFont["text"] = wordString
 						newStringFont["font"] = stringFont.font
+						newStringFont["fillStyle"] = stringFont.fillStyle
 						splitLine.push(newStringFont)
 					});
 				})
@@ -573,6 +585,7 @@ function scaleTextLayer(layer) {
 					let spacedText = wordIndex == 0 ? wordFont.text : " " + wordFont.text
 					// Measure the line with the word added in real units
 					context.font = wordFont.font
+					context.fillStyle = wordFont.fillStyle
 					let metrics = context.measureText(spacedText)
 					lineWidth += metrics.width * scale
 					if (lineWidth > layer.width) {
@@ -594,6 +607,7 @@ function scaleTextLayer(layer) {
 						let newStringFont = {}
 						newStringFont["text"] = spacedText
 						newStringFont["font"] = wordFont.font
+						newStringFont["fillStyle"] = wordFont.fillStyle
 						currentLine.stringFonts.push(newStringFont)
 
 						// Get the current Line metrics in real units
@@ -682,6 +696,7 @@ function scaleTextLayer(layer) {
 		// Draw each word of the line
 		line.stringFonts.forEach(stringFont => {
 			context.font = stringFont.font
+			context.fillStyle = stringFont.fillStyle
 			// Divide by scale here so our real units turn into CSS units
 			context.fillText(stringFont.text, x / scale, y / scale)
 			x += context.measureText(stringFont.text).width * scale
