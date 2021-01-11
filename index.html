@@ -33,9 +33,12 @@
 	</header>
 
 	<div class="container-fluid page-title">
-		<div class="row">
-			<div class="col-md-8">
+		<div class="row align-items-center">
+			<div class="col-md-3">
 				<h1>Designer</h1>
+			</div>
+			<div class="col-md-5">
+				<h2 class="float-md-right" id="templateName"></h2>
 			</div>
 			<div class="col-md-4">
 				<button type="button" class="btn btn-primary" style="width: 100%;" data-toggle="collapse" data-target="#collapseTemplates" aria-expanded="false" aria-controls="collapseTemplates">
@@ -149,6 +152,7 @@
 			console.log("Updating Input Fields")
 			let template = JSON.parse(document.getElementById("json").value)
 			generateInputs(template.inputs, document.getElementById("inputs"))
+			document.getElementById("templateName").innerHTML = template.name
 			document.getElementById("generate-image").removeAttribute("disabled")
 			document.getElementById("download-link").setAttribute("download", template.name + ".png")
 		}
