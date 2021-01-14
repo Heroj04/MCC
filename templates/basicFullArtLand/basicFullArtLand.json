@@ -1,6 +1,7 @@
 {
 	"name": "Basic Full Art Land",
 	"author": "Chilli_Axe & Mr Hero",
+	"previewImage": "templates/basicFullArtLand/preview.json",
 	"width": 3288,
 	"height": 4488,
 	"dpi": 1200,
@@ -29,7 +30,8 @@
 			"name": "cardName",
 			"type": "text",
 			"description": "Card Name",
-			"default": "Plains"
+			"default": "Plains",
+			"halfSize": true
 		},
 		{
 			"name": "landType",
@@ -43,7 +45,8 @@
 				"Mountain",
 				"Forest",
 				"Wastes"
-			]
+			],
+			"halfSize": true
 		},
 		{
 			"name": "art",
