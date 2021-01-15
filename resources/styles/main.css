@@ -1,0 +1,7 @@
+div.card {
+	width: 15rem;
+	min-width: 15rem;
+	max-width: 15rem;
+	margin-left: .5rem;
+	margin-right: .5rem;
+}

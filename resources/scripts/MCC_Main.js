@@ -4,10 +4,34 @@ async function registerFont(path, options) {
 	document.fonts.add(loadedFont);
 }
 
+async function loadTemplate(path) {
+	return new Promise((resolve, reject) => {
+		var request = new XMLHttpRequest();
+
+		// Resolve the request on load
+		request.onload = () => {
+			if (request.status == 200) {
+				resolve(JSON.parse(request.responseText));
+			} else {
+				reject(new Error("Failed to load resource Error: " + request.status))
+			}
+		}
+
+		// Handle a complete failure also
+		request.onerror = () => {
+			reject(new Error("Network Error"))
+		}
+		
+		// Start the request
+		request.open("GET", path, true);
+		request.send();
+	})
+}
+
 function loadImage(path) {
 	return new Promise((resolve, reject) => {
 		let img = new Image();
-		img.addEventListener('load', e => resolve(img));
+		img.addEventListener('load', () => resolve(img));
 		img.addEventListener('error', () => {
 			reject(new Error(`Failed to load image's URL: ${path}`));
 		});
@@ -23,105 +47,235 @@ function createCanvas(width, height) {
 	return canvas
 }
 
-function generateInputs(inputs, parentDiv) {
+function generateInputs(inputArray, parentDiv) {
 	// Flip the input Order
-	inputs.reverse()
+	inputArray.reverse()
 	// get the current inputs
-	let currentInputValues = getInputValues(inputs)
+	let currentInputValues = getInputValues(inputArray)
 	// Clear the Parent Div
 	parentDiv.innerHTML = ""
+	// Set the previous input size
+	let previousHalfSize = false
 
-	inputs.forEach(templateInput => {
-		// Create the label for the input
-		let label = document.createElement("LABEL");
-		label.setAttribute("for", templateInput.name)
-		label.innerHTML = templateInput.description
+	inputArray.forEach(input => {
+		// Label Creation
+		let labelDOM = document.createElement("LABEL");
+		labelDOM.setAttribute("for", input.name)
+		labelDOM.innerHTML = input.description
 		let labelDiv = document.createElement("DIV")
 		labelDiv.setAttribute("class", "col-md-2 col-form-label")
-		labelDiv.appendChild(label)
+		labelDiv.appendChild(labelDOM)
 
-		// Create the input itself
-		let input
-		switch (templateInput.type) {
+		// Create the inputDOM
+		let inputDOM
+		switch (input.type) {
 			case "text":
-				input = document.createElement("INPUT")
-				input.setAttribute("type", "text")
-				input.setAttribute("id", templateInput.name)
-				input.setAttribute("class", "form-control")
+			case "checkbox":
+				// Regular input elements that match their type
+				inputDOM = document.createElement("INPUT")
+				inputDOM.setAttribute("type", input.type)
+				inputDOM.setAttribute("id", input.name)
+				inputDOM.setAttribute("class", "form-control")
 				break;
 			case "combo":
-				input = document.createElement("SELECT")
-				input.setAttribute("id", templateInput.name)
-				input.setAttribute("class", "form-control")
+				// Combo box is a little special as we need to add the options
+				inputDOM = document.createElement("SELECT")
+				inputDOM.setAttribute("id", input.name)
+				inputDOM.setAttribute("class", "form-control")
 				// Add all the options
-				templateInput.options.forEach(optionValue => {
-					let option = document.createElement("OPTION")
-					option.setAttribute("value", optionValue)
-					option.innerHTML = optionValue
-					input.appendChild(option)
+				input.options.forEach(option => {
+					let optionDOM = document.createElement("OPTION")
+					optionDOM.setAttribute("value", option)
+					optionDOM.innerHTML = option
+					inputDOM.appendChild(optionDOM)
 				});
 				break;
+			case "textarea":
+				// Textareas are their own element because of course they're different
+				inputDOM = document.createElement("TEXTAREA")
+				inputDOM.setAttribute("id", input.name)
+				inputDOM.setAttribute("class", "form-control")
+				break;
+			case "file":
+				// File Inputs need custom classes and what files to accept
+				inputDOM = document.createElement("INPUT")
+				inputDOM.setAttribute("type", input.type)
+				inputDOM.setAttribute("id", input.name)
+				inputDOM.setAttribute("class", "form-control-file")
+				inputDOM.setAttribute("accept", "image/*")
+				break;
 			default:
+				throw new Error("Input type " + input.type + " not recognised")
+		}
+
+		// Set the default value or copy from last template
+		let value = currentInputValues[input.name] != undefined ? currentInputValues[input.name] : input.default
+		switch (input.type) {
+			case "text":
+			case "textarea":
+			case "combo":
+				// Set the value attribute
+				inputDOM.value = value
+				break;
+			case "checkbox":
+				// set the checked property
+				inputDOM.checked = value
+				break;
+			default:
+				// Inputs that dont support default values
 				break;
 		}
-		// Set the input Value
-		if (currentInputValues[templateInput.name]) {
-			input.setAttribute("value", currentInputValues[templateInput.name])
-		} else {
-			input.setAttribute("value", templateInput.default)
-		}
+		
 		// Create Help Text
-		let help = document.createElement("SMALL")
-		input.setAttribute("aria-describedby", `${templateInput.name}HelpText`)
-		help.setAttribute("id", `${templateInput.name}HelpText`)
-		help.setAttribute("class", "form-text text-muted")
-		if (templateInput.help) {
-			help.innerHTML = templateInput.help
+		let helpDOM = document.createElement("SMALL")
+		inputDOM.setAttribute("aria-describedby", `${input.name}HelpText`)
+		helpDOM.setAttribute("id", `${input.name}HelpText`)
+		helpDOM.setAttribute("class", "form-text text-muted")
+		helpDOM.innerHTML = input.help ? input.help : ""
+
+		// Create the inputDiv
+		let inputDiv = document.createElement("DIV")
+		let colSize = input.halfSize ? "col-md-4" : "col-md-10"
+		inputDiv.setAttribute("class", colSize)
+		inputDiv.appendChild(inputDOM)
+		inputDiv.appendChild(helpDOM)
+
+		// Put everything into a row
+		let rowDiv = previousHalfSize && input.halfSize ? parentDiv.childNodes[0] : document.createElement("DIV")
+		if (previousHalfSize && input.halfSize) {
+			// Put input into the current half row
+			rowDiv.insertBefore(inputDiv, rowDiv.childNodes[0])
+			rowDiv.insertBefore(labelDiv, rowDiv.childNodes[0])
+		} else {
+			// Put the input into its own row and add that row to the parent
+			parentDiv.insertBefore(rowDiv, parentDiv.childNodes[0])
+			rowDiv.setAttribute("class", "form-group row")
+			rowDiv.appendChild(labelDiv)
+			rowDiv.appendChild(inputDiv)
 		}
 		
-		let inputDiv = document.createElement("DIV")
-		inputDiv.setAttribute("class", "col-md-10")
-		inputDiv.appendChild(input)
-		inputDiv.appendChild(help)
-		
-		// Put the label and input into the Div as a row
-		let formRow = document.createElement("DIV");
-		formRow.setAttribute("class", "form-group row")
-		formRow.appendChild(labelDiv)
-		formRow.appendChild(inputDiv)
-		parentDiv.insertBefore(formRow, parentDiv.childNodes[0])
+		// Set the Current Half Size value
+		previousHalfSize = input.halfSize
 	});
 }
 
 function getInputValues(inputs) {
 	let output = {}
 	inputs.forEach(input => {
-		let inputDOM = document.getElementById(input.name)
-		if (inputDOM) {
-			output[input.name] = inputDOM.value
+		try {
+			let inputDOM = document.getElementById(input.name)
+			if (inputDOM) {
+				switch (input.type) {
+					case "text":
+					case "combo":
+					case "textarea":
+						// Just get the value property - Nice and easy
+						output[input.name] = inputDOM.value
+						break;
+
+					case "checkbox":
+						// Checkboxes have just got to be different
+						output[input.name] = inputDOM.checked
+						break;
+
+					case "file":
+						// Take the file and make an object URL
+						output[input.name] = window.URL.createObjectURL(inputDOM.files[0])
+						break;
+
+					default:
+						break;
+				}
+			}
+		} catch (error) {
+			console.log("Failed to get value of input: " + input.name)
 		}
 	});
 	return output
 }
 
-async function drawLayer(layer, context) {
+async function drawLayer(layer, context, inputs) {
+	// Check the Layer Conditions
+	if (!(processConditions(layer.conditions, inputs))) {
+		console.debug("Conditions for layer " + layer.description + " not met")
+		// If the layer conditions are not met just return doing nothing
+		return
+	}
+
+	// Substitute layer properties from inputs
+	for (const layerProperty in layer.inputs) {
+		if (Object.prototype.hasOwnProperty.call(layer.inputs, layerProperty)) {
+			const inputName = layer.inputs[layerProperty];
+			if (inputs[inputName]) {
+				layer[layerProperty] = inputs[inputName]
+			}
+		}
+	}
+
+	// Draw the layers
 	switch (layer.type) {
-		case "text":
+		case "group": {
+			// Create a new Canvas for the group
+			let subCanvas = createCanvas(layer.width, layer.height)
+			let subContext = subCanvas.getContext("2d")
+			// Draw the sublayers to the new canvas
+			for (let index = 0; index < layer.layers.length; index++) {
+				const subLayer = layer.layers[index];
+				try {
+					await drawLayer(subLayer, subContext, inputs)
+				} catch (error) {
+					console.error(`Failed to draw layer ${subLayer.description} - ${error.message}`)
+				}
+			}
+			// Draw the new canvas to the original canvas
+			context.drawImage(subCanvas, layer.originX, layer.originY, layer.width, layer.height)
+			break;
+		}
+
+		case "text": {
 			// Scale Text to size
 			let scaledText = await scaleTextLayer(layer)
 			// Draw the text to the canvas
 			context.drawImage(scaledText, layer.originX, layer.originY, layer.width, layer.height)
 			break;
-		case "image":
+		}
+	
+		case "image": {
 			// Scale Image to size
 			let scaledImage = await scaleImageLayer(layer)
 			// Draw the scaled image to the canvas
 			context.drawImage(scaledImage, layer.originX, layer.originY, layer.width, layer.height)
 			break;
+		}
+
+		case "fill":
+			// Draw a filled rectangle
+			context.save()
+			context.fillStyle = layer.fillStyle
+			context.fillRect(layer.originX, layer.originY, layer.width, layer.height)
+			context.restore()
+			break;
+		
+		case "mask": {
+			// Scale Image to size
+			let maskImage = await scaleImageLayer(layer)
+			// Draw the scaled image to the canvas for each operation
+			layer.operations.forEach(operation => {
+				context.save()
+				context.globalCompositeOperation = operation
+				context.drawImage(maskImage, layer.originX, layer.originY, layer.width, layer.height)
+				context.restore()
+			});
+			break;
+		}
+
 		default:
+			console.error("Unknown Layer type")
 			break;
 	}
 }
+
+
 
 async function generateCard(template, inputs) {
 	// 69.6mm x 95.0mm (63mm x 88mm with bleed)
@@ -149,26 +303,13 @@ async function generateCard(template, inputs) {
 	template.layers.reverse()
 
 	// Draw the layers
+	// Use a normal for loop here to get around async anonymous functions
 	for (let index = 0; index < template.layers.length; index++) {
-		let layer = template.layers[index];
-		if (processConditions(layer.conditions, inputs)) {
-			// Update layer properties from inputs
-			for (const layerProperty in layer.inputs) {
-				if (layer.inputs.hasOwnProperty(layerProperty)) {
-					const inputName = layer.inputs[layerProperty];
-					if (inputs[inputName]) {
-						layer[layerProperty] = inputs[inputName]
-					}
-				}
-			}
-			// Draw the layer
-			try {
-				await drawLayer(layer, context)
-			} catch (error) {
-				console.log("Failed to draw layer " + layer.description + ": " + error.message)
-			}
-		} else {
-			console.log("Conditions for layer " + layer.description + " not met");
+		const layer = template.layers[index];
+		try {
+			await drawLayer(layer, context, inputs)
+		} catch (error) {
+			console.error(`Failed to draw layer ${layer.description} - ${error.message}`)
 		}
 	}
 
@@ -178,7 +319,7 @@ async function generateCard(template, inputs) {
 
 // Function that takes an image layer and returns a the image cropped and scaled as a canvas
 async function scaleImageLayer(layer) {
-	if (layer.type != "image") {
+	if (layer.type != "image" && layer.type != "mask") {
 		throw new Error("Tried to scale a non image layer")
 	} else if (layer.url == "") {
 		throw new Error("Layer has no URL")
@@ -189,12 +330,7 @@ async function scaleImageLayer(layer) {
 	let context = canvas.getContext("2d")
 
 	// Get the image
-	let image
-	try {
-		image = await loadImage(layer.url)
-	} catch (error) {
-		throw error
-	}
+	let image = await loadImage(layer.url)
 
 	let x = 0
 	let y = 0 
@@ -262,10 +398,15 @@ function scaleTextLayer(layer) {
 	let canvas = createCanvas(layer.width, layer.height)
 	let context = canvas.getContext("2d")
 
+	// Set up the context
+	context.textAlign = "start"
+	context.textBaseline = "alphabetic"
+	context.fillStyle = layer.fillStyle
+
 	// Do any text replacements we need
 	let text = layer.text
 	for (const sourceString in layer.textReplace) {
-		if (layer.textReplace.hasOwnProperty(sourceString)) {
+		if (Object.prototype.hasOwnProperty.call(layer.textReplace, sourceString)) {
 			const replacementString = layer.textReplace[sourceString];
 			text = text.replaceAll(sourceString, replacementString)
 		}
@@ -277,10 +418,12 @@ function scaleTextLayer(layer) {
 	let temp = {}
 	temp["text"] = text
 	temp["font"] = layer.font
+	temp["fillStyle"] = layer.fillStyle
 	stringsWithFonts.push(temp)
 	for (const seperatorString in layer.fontReplace) {
-		if (layer.fontReplace.hasOwnProperty(seperatorString)) {
-			const font = layer.fontReplace[seperatorString];
+		if (Object.prototype.hasOwnProperty.call(layer.fontReplace, seperatorString)) {
+			const font = layer.fontReplace[seperatorString].font;
+			const fillStyle = layer.fontReplace[seperatorString].fillStyle;
 			// Seperator Boundaries
 			let stringWithFontsNew = []
 			let seperatorStart = seperatorString.substring(0, seperatorString.length / 2) //First half of string
@@ -294,19 +437,25 @@ function scaleTextLayer(layer) {
 						let secondSplit = toBeClosed.split(seperatorEnd)
 						let newStringFont = {}
 						if (secondSplit.length == 1) {
-							newStringFont = {}
-							newStringFont["text"] = secondSplit[0]
-							newStringFont["font"] = stringFont.font
-							stringWithFontsNew.push(newStringFont)
+							if (secondSplit[0] != "") {
+								// Only put the string in if it's not empty
+								newStringFont = {}
+								newStringFont["text"] = secondSplit[0]
+								newStringFont["font"] = stringFont.font
+								newStringFont["fillStyle"] = stringFont.fillStyle
+								stringWithFontsNew.push(newStringFont)
+							}
 						} else if (secondSplit.length == 2) {
 							newStringFont = {}
 							newStringFont["text"] = secondSplit[0]
 							newStringFont["font"] = font
+							newStringFont["fillStyle"] = fillStyle
 							stringWithFontsNew.push(newStringFont)
 							if (secondSplit[1] != "") {
 								newStringFont = {}
 								newStringFont["text"] = secondSplit[1]
 								newStringFont["font"] = stringFont.font
+								newStringFont["fillStyle"] = stringFont.fillStyle
 								stringWithFontsNew.push(newStringFont)
 							}
 						} else {
@@ -316,11 +465,13 @@ function scaleTextLayer(layer) {
 							newStringFont = {}
 							newStringFont["text"] = firstString
 							newStringFont["font"] = stringFont.font
+							newStringFont["fillStyle"] = stringFont.fillStyle
 							stringWithFontsNew.push(newStringFont)
 							if (finalString != "") {
 								newStringFont = {}
 								newStringFont["text"] = finalString
 								newStringFont["font"] = font
+								newStringFont["fillStyle"] = fillStyle
 								stringWithFontsNew.push(newStringFont)
 							}
 						}
@@ -334,61 +485,226 @@ function scaleTextLayer(layer) {
 		}
 	}
 
-	// Set the fill style
-	context.fillStyle = layer.fillStyle
+	let lineBreaks = [{
+		"height": 0,
+		"baselineHeight": 0,
+		"width": 0,
+		"stringFonts": []
+	}]
 
-	// Set variables
-	let x = 0
-	let y = 0
-	
-	if (layer.wrapText || layer.scaleText) {
-		throw new Error("Text wrapping and Autoscaling not yet supported")
-	} else {
-		let totalWidth = 0
-		stringsWithFonts.forEach(stringFont => {
-			context.font = stringFont.font
-			totalWidth += context.measureText(stringFont.text).width
+	stringsWithFonts.forEach(stringFont => {
+		// Split at line breaks
+		let lines = stringFont.text.split("\n")
+		// Put the split stringFonts into the lineBreaks array
+		// The first one should always be on the current line
+		let newStringFont = {}
+		newStringFont["text"] = lines[0]
+		newStringFont["font"] = stringFont.font
+		newStringFont["fillStyle"] = stringFont.fillStyle
+		lineBreaks[lineBreaks.length - 1].stringFonts.push(newStringFont)
+		// Calculate line metrics
+		context.font = newStringFont.font
+		context.fillStyle = newStringFont.fillStyle
+		let metrics = context.measureText(newStringFont.text)
+		let height = metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent
+		lineBreaks[lineBreaks.length - 1].height = height > lineBreaks[lineBreaks.length - 1].height ? height : lineBreaks[lineBreaks.length - 1].height
+		lineBreaks[lineBreaks.length - 1].baselineHeight = metrics.fontBoundingBoxAscent > lineBreaks[lineBreaks.length - 1].baselineHeight ? metrics.fontBoundingBoxAscent : lineBreaks[lineBreaks.length - 1].baselineHeight
+		lineBreaks[lineBreaks.length - 1].width += metrics.width
+		// everything else goes onto a new line
+		if (lines.length > 1) {
+			lineBreaks.push({
+				"height": 0,
+				"baselineHeight": 0,
+				"width": 0,
+				"stringFonts": []
+			})
+			// Regular for loop so we can start at 1
+			for (let index = 1; index < lines.length; index++) {
+				const line = lines[index];
+				newStringFont = {}
+				newStringFont["text"] = line
+				newStringFont["font"] = stringFont.font
+				newStringFont["fillStyle"] = stringFont.fillStyle
+				lineBreaks[lineBreaks.length - 1].stringFonts.push(newStringFont)
+				// Calculate line metrics
+				context.font = newStringFont.font
+				context.fillStyle = newStringFont.fillStyle
+				let metrics = context.measureText(newStringFont.text)
+				let height = metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent
+				lineBreaks[lineBreaks.length - 1].height = height > lineBreaks[lineBreaks.length - 1].height ? height : lineBreaks[lineBreaks.length - 1].height
+				lineBreaks[lineBreaks.length - 1].baselineHeight = metrics.fontBoundingBoxAscent > lineBreaks[lineBreaks.length - 1].baselineHeight ? metrics.fontBoundingBoxAscent : lineBreaks[lineBreaks.length - 1].baselineHeight
+				lineBreaks[lineBreaks.length - 1].width += metrics.width
+			}
+		}
+	})
+
+	let totalHeight = 0
+	let totalWidth = 0
+	let scale = 1
+	let finalLines
+
+	// Always run at least once
+	do {
+		// Clone the linebreaks array so we have a fresh array each loop
+		// I know this is a really dumb way of doing it but I really want an entirely new object with no references
+		finalLines = JSON.parse(JSON.stringify(lineBreaks))
+
+		// Word Wrapping
+		if (layer.wrapText) {
+			// Split each lines stringFonts into words as stringFonts
+			finalLines.forEach((line, index) => {
+				let splitLine = []
+				line.stringFonts.forEach(stringFont => {
+					let words = stringFont.text.split(" ")
+					words.forEach(wordString => {
+						let newStringFont = {}
+						newStringFont["text"] = wordString
+						newStringFont["font"] = stringFont.font
+						newStringFont["fillStyle"] = stringFont.fillStyle
+						splitLine.push(newStringFont)
+					});
+				})
+				finalLines[index].stringFonts = splitLine
+			});
+
+			// Check each line and where longer than a line, wrap to a new line
+			// Regular for loop used here so we can edit the array and then process the new values
+			for (let index = 0; index < finalLines.length; index++) {
+				const line = finalLines[index];
+				let currentLine = {
+					"height":0,
+					"baselineHeight": 0,
+					"width": 0,
+					"stringFonts": []
+				}
+				let lineWidth = 0
+				// Regular for loop used here so we can break from it to stop processing words processed in next line
+				for (let wordIndex = 0; wordIndex < line.stringFonts.length; wordIndex++) {
+					const wordFont = line.stringFonts[wordIndex];
+					// Make sure we measure with the space added back
+					let spacedText = wordIndex == 0 ? wordFont.text : " " + wordFont.text
+					// Measure the line with the word added in real units
+					context.font = wordFont.font
+					context.fillStyle = wordFont.fillStyle
+					let metrics = context.measureText(spacedText)
+					lineWidth += metrics.width * scale
+					if (lineWidth > layer.width) {
+						// We need to wrap current word and onwards to a new line
+						let nextLine = {
+							"height": 0,
+							"baselineHeight": 0,
+							"width": 0,
+							"stringFonts": []
+						}
+						nextLine.stringFonts = line.stringFonts.slice(wordIndex)
+						finalLines.splice(index + 1, 0, nextLine)
+						// Replace the current line with the new current line with words that fit
+						finalLines.splice(index, 1, currentLine)
+						// Stop processing the current line
+						break
+					} else {
+						// Put the word into the current Line
+						let newStringFont = {}
+						newStringFont["text"] = spacedText
+						newStringFont["font"] = wordFont.font
+						newStringFont["fillStyle"] = wordFont.fillStyle
+						currentLine.stringFonts.push(newStringFont)
+
+						// Get the current Line metrics in real units
+						let newHeight = (metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent) * scale
+						let newBaselineHeight = metrics.fontBoundingBoxAscent * scale
+						// Save the current line metrics
+						currentLine.height = newHeight > currentLine.height ? newHeight : currentLine.height
+						currentLine.baselineHeight = newBaselineHeight > currentLine.baselineHeight ? newBaselineHeight : currentLine.baselineHeight
+						currentLine.width = lineWidth
+					}
+				}
+				// Replace the current line with the new current line with words that fit
+				finalLines.splice(index, 1, currentLine)
+			}
+		}
+
+		// Get the total height so we know where to start our cursor
+		totalHeight = 0
+		if (finalLines.length <= 1) {
+			finalLines[0].height = layer.wrapText ? finalLines[0].height : finalLines[0].height * scale //Make sure we're using the right units (if text was wrapped it's already in real units)
+			finalLines[0].baselineHeight = layer.wrapText ? finalLines[0].baselineHeight : finalLines[0].baselineHeight * scale //Make sure we're using the right units (if text was wrapped it's already in real units)
+			totalHeight = finalLines[0].height
+		} else {
+			finalLines.forEach(line => {
+				line.height = layer.wrapText ? line.height : line.height * scale //Make sure we're using the right units (if text was wrapped it's already in real units)
+				line.baselineHeight = layer.wrapText ? line.baselineHeight : line.baselineHeight * scale //Make sure we're using the right units (if text was wrapped it's already in real units)
+				totalHeight += line.height * layer.lineSpacing
+			});
+		}
+
+		// Get the total Width so we can scale horizontal text
+		totalWidth = 0
+		finalLines.forEach(line => {
+			line.width = layer.wrapText ? line.width : line.width * scale //Make sure we're using the right units (if text was wrapped it's already in real units)
+			totalWidth = line.width > totalWidth ? line.width : totalWidth
 		});
 
+		if (layer.scaleText && (totalHeight > layer.height || totalWidth > layer.width)) {
+			// If we're going to loop, scale the context
+			context.scale(0.95, 0.95)
+			scale = scale * 0.95
+		}
+	} while (layer.scaleText && (totalHeight > layer.height || totalWidth > layer.width));
+
+	// Set Cursor to origin
+	let x = 0
+	let y = 0
+
+	// Align Vertically / Set Baseline
+	switch (layer.baseline) {
+		case "top":
+			// Do nothing, we're already at x = 0
+			break;
+		case "middle":
+			// move to the middle of the layer then up to the start of the text
+			y = (layer.height / 2) - (totalHeight / 2)
+			break;
+		case "bottom":
+			// move to the bottom of the layer then up to the start of the text
+			y = layer.height - totalHeight
+			break;
+		default:
+			break;
+	}
+
+	// Draw each line
+	finalLines.forEach(line => {
 		// Align Horizontally if needed
-		context.textAlign = "start"
 		switch (layer.align) {
 			case "start":
 				x = 0
 				break;
 			case "center":
-				x = (layer.width / 2) - (totalWidth / 2)
+				x = (layer.width / 2) - (line.width / 2)
 				break;
 			case "right":
-				x = layer.width - totalWidth
+				x = layer.width - line.width
 				break;
 			default:
 				break;
 		}
 
-		// Align Vertically if needed
-		context.textBaseline = layer.baseline
-		switch (layer.baseline) {
-			case "top":
-				// do nothing start typing
-				break;
-			case "middle":
-				y = (layer.height / 2)
-				break;
-			case "bottom":
-				y = layer.height
-				break;
-			default:
-				break;
-		}
-		
-		// Draw the Text
-		stringsWithFonts.forEach(stringFont => {
+		// Move the cursor to the baseline of the current line
+		y += line.baselineHeight
+
+		// Draw each word of the line
+		line.stringFonts.forEach(stringFont => {
 			context.font = stringFont.font
-			context.fillText(stringFont.text, x, y)
-			x += context.measureText(stringFont.text).width
-		});
-	}
+			context.fillStyle = stringFont.fillStyle
+			// Divide by scale here so our real units turn into CSS units
+			context.fillText(stringFont.text, x / scale, y / scale)
+			x += context.measureText(stringFont.text).width * scale
+		})
+
+		// Move the cursor to the top of the next line
+		y = y - line.baselineHeight + (line.height * layer.lineSpacing)
+	});
 
 	// Return the completed Canvas
 	return canvas
@@ -404,22 +720,80 @@ function processConditions(conditions, inputs) {
 	let results = []
 
 	for (const key in conditions) {
-		if (conditions.hasOwnProperty(key)) {
+		if (Object.prototype.hasOwnProperty.call(conditions, key)) {
 			const element = conditions[key];
 			
-			if (key == "or") {
-				// Process Or statement
-				let anyTrue = false
-				element.forEach(subConditions => {
-					let output = processConditions(subConditions, inputs)
-					if (output) {
-						anyTrue = true
+			switch (key) {
+				case "$or": {
+					// Process Or statement
+					let anyTrue = false
+					element.forEach(subConditions => {
+						let output = processConditions(subConditions, inputs)
+						if (output) {
+							anyTrue = true
+						}
+					});
+					results.push(anyTrue)
+					break;
+				}
+
+				case "$not": {
+					// Process Or statement
+					let inner = processConditions(element, inputs)
+					results.push(!inner)
+					break;
+				}
+
+				default:
+					// If element is an object (has subconditions like < > !)
+					if (typeof element == "object") {
+						// For each property in the object
+						for (const subCondition in element) {
+							if (Object.prototype.hasOwnProperty.call(element, subCondition)) {
+								const subConditionData = element[subCondition];
+
+								// Switch on operators
+								switch (subCondition) {
+									case "$match":
+										// Regex match
+										results.push(inputs[key].match(subConditionData))
+										break;
+									
+									case "$lt":
+										// Less than
+										results.push(inputs[key] < subConditionData)
+										break;
+									
+									case "$lte":
+										// Less than or equal to
+										results.push(inputs[key] <= subConditionData)
+										break;
+
+									case "$gt":
+										//Greater than
+										results.push(inputs[key] > subConditionData)
+										break;
+
+									case "$gte":
+										// Greater than or equal to
+										results.push(inputs[key] >= subConditionData)
+										break;
+
+									case "$in":
+										// In array
+										results.push(subConditionData.includes(inputs[key]))
+										break;
+
+									default:
+										break;
+								}
+							}
+						}
+					} else {
+						// Check if input equals check condition
+						results.push(element == inputs[key])
 					}
-				});
-				results.push(anyTrue)
-			} else {
-				// Check if input equals check condition
-				results.push(element == inputs[key])
+					break;
 			}
 		}
 	}

@@ -1,6 +1,7 @@
 {
 	"name": "Basic Full Art Land",
 	"author": "Chilli_Axe & Mr Hero",
+	"previewImage": "templates/basicFullArtLand/preview.png",
 	"width": 3288,
 	"height": 4488,
 	"dpi": 1200,
@@ -29,7 +30,8 @@
 			"name": "cardName",
 			"type": "text",
 			"description": "Card Name",
-			"default": "Plains"
+			"default": "Plains",
+			"halfSize": true
 		},
 		{
 			"name": "landType",
@@ -43,11 +45,12 @@
 				"Mountain",
 				"Forest",
 				"Wastes"
-			]
+			],
+			"halfSize": true
 		},
 		{
 			"name": "art",
-			"type": "text",
+			"type": "file",
 			"description": "Art Image URL",
 			"default": "https://cdna.artstation.com/p/assets/images/images/010/109/908/large/sam-burley-burley-plainsbfz.jpg"
 		},
@@ -111,7 +114,10 @@
 				"text": "legal"
 			},
 			"fontReplace": {
-				"()": "bold 70px Beleren2016"
+				"()": {
+					"font": "bold 70px Beleren2016",
+					"fillStyle": "white"
+				}
 			}
 		},
 		{
@@ -136,7 +142,10 @@
 				"{NIB}": "{a}"
 			},
 			"fontReplace": {
-				"{}": "70px NDPMTG"
+				"{}": {
+					"font": "70px NDPMTG",
+					"fillStyle": "white"
+				}
 			}
 		},
 		{
@@ -159,82 +168,100 @@
 			}
 		},
 		{
-			"type": "image",
-			"description": "Frame Plains",
-			"url": "templates/basicFullArtLand/Frame_Plains.png",
+			"type": "group",
+			"description": "Frame",
 			"originX": 0,
 			"originY": 0,
 			"width": 3288,
 			"height": 4488,
-			"scale": "fill",
-			"conditions": {
-				"landType": "Plains"
-			}
-		},
-		{
-			"type": "image",
-			"description": "Frame Island",
-			"url": "templates/basicFullArtLand/Frame_Island.png",
-			"originX": 0,
-			"originY": 0,
-			"width": 3288,
-			"height": 4488,
-			"scale": "fill",
-			"conditions": {
-				"landType": "Island"
-			}
-		},
-		{
-			"type": "image",
-			"description": "Frame Swamp",
-			"url": "templates/basicFullArtLand/Frame_Swamp.png",
-			"originX": 0,
-			"originY": 0,
-			"width": 3288,
-			"height": 4488,
-			"scale": "fill",
-			"conditions": {
-				"landType": "Swamp"
-			}
-		},
-		{
-			"type": "image",
-			"description": "Frame Mountain",
-			"url": "templates/basicFullArtLand/Frame_Mountain.png",
-			"originX": 0,
-			"originY": 0,
-			"width": 3288,
-			"height": 4488,
-			"scale": "fill",
-			"conditions": {
-				"landType": "Mountain"
-			}
-		},
-		{
-			"type": "image",
-			"description": "Frame Forest",
-			"url": "templates/basicFullArtLand/Frame_Forest.png",
-			"originX": 0,
-			"originY": 0,
-			"width": 3288,
-			"height": 4488,
-			"scale": "fill",
-			"conditions": {
-				"landType": "Forest"
-			}
-		},
-		{
-			"type": "image",
-			"description": "Frame Wastes",
-			"url": "templates/basicFullArtLand/Frame_Wastes.png",
-			"originX": 0,
-			"originY": 0,
-			"width": 3288,
-			"height": 4488,
-			"scale": "fill",
-			"conditions": {
-				"landType": "Wastes"
-			}
+			"layers": [
+				{
+					"type": "fill",
+					"description": "Plains",
+					"originX": 0,
+					"originY": 0,
+					"width": 3288,
+					"height": 4488,
+					"fillStyle": "#F5E9E7",
+					"conditions": {
+						"landType": "Plains"
+					}
+				},
+				{
+					"type": "fill",
+					"description": "Island",
+					"originX": 0,
+					"originY": 0,
+					"width": 3288,
+					"height": 4488,
+					"fillStyle": "#026BA4",
+					"conditions": {
+						"landType": "Island"
+					}
+				},
+				{
+					"type": "fill",
+					"description": "Swamp",
+					"originX": 0,
+					"originY": 0,
+					"width": 3288,
+					"height": 4488,
+					"fillStyle": "#262A2A",
+					"conditions": {
+						"landType": "Swamp"
+					}
+				},
+				{
+					"type": "fill",
+					"description": "Mountain",
+					"originX": 0,
+					"originY": 0,
+					"width": 3288,
+					"height": 4488,
+					"fillStyle": "#E74C36",
+					"conditions": {
+						"landType": "Mountain"
+					}
+				},
+				{
+					"type": "fill",
+					"description": "Forest",
+					"originX": 0,
+					"originY": 0,
+					"width": 3288,
+					"height": 4488,
+					"fillStyle": "#037040",
+					"conditions": {
+						"landType": "Forest"
+					}
+				},
+				{
+					"type": "fill",
+					"description": "Wastes",
+					"originX": 0,
+					"originY": 0,
+					"width": 3288,
+					"height": 4488,
+					"fillStyle": "#CDC1BB",
+					"conditions": {
+						"landType": "Wastes"
+					}
+				},
+				{
+					"type": "mask",
+					"description": "Frame Mask",
+					"url": "templates/basicFullArtLand/Frame.png",
+					"originX": 0,
+					"originY": 0,
+					"width": 3288,
+					"height": 4488,
+					"scale": "fill",
+					"operations": [
+						"multiply",
+						"destination-in"
+					]
+				}
+			]
 		},
 		{
 			"type": "image",
