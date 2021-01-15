@@ -48,7 +48,7 @@ function injectTemplateCards() {
 
 			// All the card guts
 			cardDiv.innerHTML = `\
-			<img class="card-img-top" src="${template.previewImage}" alt="${template.name} Preview">\
+			<img class="card-img-top w-75 mx-auto mt-4" src="${template.previewImage}" alt="${template.name} Preview">\
 			<div class="card-body">\
 				<h5 class="card-title">${template.name}</h5>\
 				<p class="card-text">${template.author}</p>\
