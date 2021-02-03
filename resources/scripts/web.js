@@ -23,11 +23,16 @@ async function generate() {
 
 async function inputUpdate() {
 	console.log("Updating Input Fields")
+	// Get the Input Elements
 	let template = JSON.parse(document.getElementById("json").value)
 	generateInputs(template.inputs, document.getElementById("inputs"))
+	// Put elements into HTML
 	document.getElementById("templateName").innerHTML = template.name
+	// Enable Downloads
 	document.getElementById("generate-image").removeAttribute("disabled")
 	document.getElementById("download-link").setAttribute("download", template.name + ".png")
+	// Hide the Template Selector
+	$('#collapseTemplates').collapse('hide')
 }
 
 async function loadTemplateToPage(templateURL) {
