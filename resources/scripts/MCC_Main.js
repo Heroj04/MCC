@@ -381,6 +381,14 @@ async function scaleImageLayer(layer) {
 			break;
 	}
 
+	// Set up the drop shadow
+	if (layer.dropShadow) {
+		context.shadowOffsetX = layer.dropShadow.offsetX
+		context.shadowOffsetY = layer.dropShadow.offsetY
+		context.shadowBlur = layer.dropShadow.shadowBlur
+		context.shadowColor = layer.dropShadow.shadowColor
+	}
+
 	// Write the image to the canvas (crops the image)
 	context.drawImage(image, x, y, newWidth, newHeight)
 
@@ -419,11 +427,13 @@ function scaleTextLayer(layer) {
 	temp["text"] = text
 	temp["font"] = layer.font
 	temp["fillStyle"] = layer.fillStyle
+	temp["dropShadow"] = layer.dropShadow
 	stringsWithFonts.push(temp)
 	for (const seperatorString in layer.fontReplace) {
 		if (Object.prototype.hasOwnProperty.call(layer.fontReplace, seperatorString)) {
 			const font = layer.fontReplace[seperatorString].font;
 			const fillStyle = layer.fontReplace[seperatorString].fillStyle;
+			const dropShadow = layer.fontReplace[seperatorString].dropShadow;
 			// Seperator Boundaries
 			let stringWithFontsNew = []
 			let seperatorStart = seperatorString.substring(0, seperatorString.length / 2) //First half of string
@@ -443,6 +453,7 @@ function scaleTextLayer(layer) {
 								newStringFont["text"] = secondSplit[0]
 								newStringFont["font"] = stringFont.font
 								newStringFont["fillStyle"] = stringFont.fillStyle
+								newStringFont["dropShadow"] = stringFont.dropShadow
 								stringWithFontsNew.push(newStringFont)
 							}
 						} else if (secondSplit.length == 2) {
@@ -450,12 +461,14 @@ function scaleTextLayer(layer) {
 							newStringFont["text"] = secondSplit[0]
 							newStringFont["font"] = font
 							newStringFont["fillStyle"] = fillStyle
+							newStringFont["dropShadow"] = dropShadow
 							stringWithFontsNew.push(newStringFont)
 							if (secondSplit[1] != "") {
 								newStringFont = {}
 								newStringFont["text"] = secondSplit[1]
 								newStringFont["font"] = stringFont.font
 								newStringFont["fillStyle"] = stringFont.fillStyle
+								newStringFont["dropShadow"] = stringFont.dropShadow
 								stringWithFontsNew.push(newStringFont)
 							}
 						} else {
@@ -466,12 +479,14 @@ function scaleTextLayer(layer) {
 							newStringFont["text"] = firstString
 							newStringFont["font"] = stringFont.font
 							newStringFont["fillStyle"] = stringFont.fillStyle
+							newStringFont["dropShadow"] = stringFont.dropShadow
 							stringWithFontsNew.push(newStringFont)
 							if (finalString != "") {
 								newStringFont = {}
 								newStringFont["text"] = finalString
 								newStringFont["font"] = font
 								newStringFont["fillStyle"] = fillStyle
+								newStringFont["dropShadow"] = dropShadow
 								stringWithFontsNew.push(newStringFont)
 							}
 						}
@@ -501,6 +516,7 @@ function scaleTextLayer(layer) {
 		newStringFont["text"] = lines[0]
 		newStringFont["font"] = stringFont.font
 		newStringFont["fillStyle"] = stringFont.fillStyle
+		newStringFont["dropShadow"] = stringFont.dropShadow
 		lineBreaks[lineBreaks.length - 1].stringFonts.push(newStringFont)
 		// Calculate line metrics
 		context.font = newStringFont.font
@@ -525,6 +541,7 @@ function scaleTextLayer(layer) {
 				newStringFont["text"] = line
 				newStringFont["font"] = stringFont.font
 				newStringFont["fillStyle"] = stringFont.fillStyle
+				newStringFont["dropShadow"] = stringFont.dropShadow
 				lineBreaks[lineBreaks.length - 1].stringFonts.push(newStringFont)
 				// Calculate line metrics
 				context.font = newStringFont.font
@@ -561,6 +578,7 @@ function scaleTextLayer(layer) {
 						newStringFont["text"] = wordString
 						newStringFont["font"] = stringFont.font
 						newStringFont["fillStyle"] = stringFont.fillStyle
+						newStringFont["dropShadow"] = stringFont.dropShadow
 						splitLine.push(newStringFont)
 					});
 				})
@@ -608,6 +626,7 @@ function scaleTextLayer(layer) {
 						newStringFont["text"] = spacedText
 						newStringFont["font"] = wordFont.font
 						newStringFont["fillStyle"] = wordFont.fillStyle
+						newStringFont["dropShadow"] = wordFont.dropShadow
 						currentLine.stringFonts.push(newStringFont)
 
 						// Get the current Line metrics in real units
@@ -673,6 +692,8 @@ function scaleTextLayer(layer) {
 			break;
 	}
 
+	context.save()
+
 	// Draw each line
 	finalLines.forEach(line => {
 		// Align Horizontally if needed
@@ -695,8 +716,17 @@ function scaleTextLayer(layer) {
 
 		// Draw each word of the line
 		line.stringFonts.forEach(stringFont => {
+			context.restore()
+			// Set Context Style
 			context.font = stringFont.font
 			context.fillStyle = stringFont.fillStyle
+			// Set up the drop shadow
+			if (stringFont.dropShadow) {
+				context.shadowOffsetX = stringFont.dropShadow.offsetX
+				context.shadowOffsetY = stringFont.dropShadow.offsetY
+				context.shadowBlur = stringFont.dropShadow.shadowBlur
+				context.shadowColor = stringFont.dropShadow.shadowColor
+			}
 			// Divide by scale here so our real units turn into CSS units
 			context.fillText(stringFont.text, x / scale, y / scale)
 			x += context.measureText(stringFont.text).width * scale
